@@ -1,2 +1,4 @@
 numpy
 kserve
+prometheus_client
+flask

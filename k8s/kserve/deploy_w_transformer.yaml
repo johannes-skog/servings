@@ -1,0 +1,49 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: test
+  annotations:
+    autoscaling.knative.dev/target: "1" # means the autoscaler will aim to maintain an average of 1 in-flight request per pod
+spec:
+  predictor:
+    minReplicas: 1
+    timeout: 60
+    logger:
+      mode: all
+      url: http://message-dumper.default.svc.cluster.local # kubectl describe ksvc message-dumper to the the url
+    batcher:
+      maxBatchSize: 32
+      maxLatency: 5000
+    serviceAccountName: sa
+    triton:
+      args:
+      - --log-verbose=1
+      storageUri: https://deeplearning.blob.core.windows.net/kfserve2/models/
+      runtimeVersion: 20.10-py3
+      env:
+      - name: OMP_NUM_THREADS
+        value: "1"
+      resources:
+        limits:
+          cpu: "4"
+          memory: "4Gi"
+        requests:
+          cpu: "1"
+          memory: "1Gi"
+  transformer:
+    minReplicas: 1
+    logger:
+      mode: all
+      url: http://message-dumper.default.svc.cluster.local # kubectl describe ksvc message-dumper to the the url
+    containers:
+    - image: johannes89/ktransv2:1
+      name: ktransformer
+      command:
+      - "python"
+      - "main.py"
+      args:
+      - --model_name
+      - test
+
+
+    
